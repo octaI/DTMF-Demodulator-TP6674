@@ -64,9 +64,6 @@ def zplane(b, a,fc, filename=None):
     r = 1.5;
     plt.axis('scaled');
     plt.axis([-r, r, -r, r])
-    # ticks = [-1, -.5, .5, 1];
-    # plt.xticks(ticks);
-    # plt.yticks(ticks)
 
     if filename is None:
         plt.title('Diagrama de ceros y polos para filtro centrado en ' + str(fc))
@@ -137,12 +134,12 @@ def generate_tone(f1,f2,fs,duration=1):
     second_sine = generate_sine_wave(f2,fs,duration)
     sum_of_sines = first_sine + second_sine
     sum_of_sines = np.divide(sum_of_sines,2)
-    chunk = sum_of_sines #lower volume
+    chunk = sum_of_sines * .25 #lower volume
     chunk = np.append(chunk,silence)
     scaled_chunk = np.int16(chunk*32767)
     return scaled_chunk
 
-def play_tones(chunk,fs):
+def play_tones(chunk,fs,filename=None):
     while len(chunk) < fs:
         chunk = np.append(chunk, [0])  # pad with zeros
     p = pyaudio.PyAudio()
@@ -151,7 +148,8 @@ def play_tones(chunk,fs):
                     rate=fs,
                     output=True)
     stream.write(chunk.astype(np.int16).tostring())
-    scipy.io.wavfile.write('ex7.wav',fs,chunk.astype(np.int16))
+    if (filename is not None):
+        scipy.io.wavfile.write(filename,fs,chunk.astype(np.int16))
     stream.stop_stream()
     stream.close()
 
@@ -185,36 +183,7 @@ def plot_digits_dft(sample_array,fs):
     plot_two_signals(np.arange(len(sample_array[int(3.35*fs):int(4.10*fs)]))/fs,sample_array[int(3.35*fs):int(4.10*fs)],xf,yf,
                      'Tiempo [s]','Amplitud [pcm]','Frecuencia [Hz]','Amplitud','Discado completo en tiempo/frecuencia','Tiempo','Frecuencia')
 
-# def firwin_filter(sample_array,fs,cutoff_freq,N,window=None,plot=False):
-#     freq_nyq = fs/2
-#
-#     if (window == None):
-#         window = 'hamming' #default window for lfilter
-#
-#     h_lpf = signal.firwin(N,cutoff_freq/freq_nyq,pass_zero=False,window=window)
-#
-#     filtered_array = signal.lfilter(h_lpf,1.0,sample_array)
-#
-#     if (plot == True):
-#         plt.figure()
-#         plt.plot(h_lpf,'b',linewidth=2)
-#         plt.title('Coeficientes del Filtro (%d puntos)' %N)
-#         plt.grid(True)
-#         plt.show()
-#
-#         plt.figure()
-#         plt.clf()
-#         w,h = signal.freqz(h_lpf,worN=8000)
-#         plt.plot((w/np.pi)*freq_nyq,np.abs(h),linewidth=2)
-#         plt.xlabel('Frecuencia [Hz]')
-#         plt.ylabel('Ganancia')
-#         plt.title('Respuesta en Frecuencia')
-#         plt.ylim(-0.05,1.05)
-#         plt.grid(True)
-#         plt.show()
-#     delay = 0.5 * (N-1) / fs
-#
-#     return filtered_array, delay
+
 
 def normalize_signal(sample_array,filter_length=64):
     squared_signal = np.square(sample_array)
@@ -223,14 +192,6 @@ def normalize_signal(sample_array,filter_length=64):
     signal_energy = signal_energy[(filter_length-1)//2:] #discard transient effects
     max_energy = np.max(signal_energy)
     return signal_energy/max_energy
-
-def generate_kaiser_window(ripple_DB,desired_width,freq_nyq):
-
-    width = desired_width / freq_nyq  # width of the passband
-    N_kaiser, beta = signal.kaiserord(ripple_DB, width)
-
-    return N_kaiser,beta
-
 
 def classify_dft_frequencies(freq):
     # Allowing a tolerance of +-2.25% of central frequency
@@ -248,24 +209,24 @@ def get_freq_pair(tuple):
         if v == tuple:
             return k
     return None
-def decode_dtmf_with_dft(signal_array,fs):
+
+
+def decode_dtmf_with_dft(signal_array,fs,threshold=0.7):
     squared_array = np.square(signal_array)
 
     filter_length= 64 #filter length, 0.14*8000 = 1020, N must be small enough so transient has little effect
     ma_filter = np.true_divide(np.ones(filter_length),filter_length)
-    #plot_signal(np.arange(filter_length+20),np.pad(ma_filter,(10,10),mode='constant'),'Tiempo [s]','Amplitud','Filtro Moving Average')
-
+    # plot_signal(np.arange(filter_length+20),np.pad(ma_filter,(10,10),mode='constant'),'Longitud [samples]','Amplitud','Filtro Moving Average')
     signal_energy_filtered = normalize_signal(signal_array,filter_length) #removed transient effects
 
     peak_energy = np.max(signal_energy_filtered)
     signal_energy_normalized = signal_energy_filtered/peak_energy #values between 0 and 1
-    #plot_signal(np.arange(len(signal_energy_filtered))/fs,signal_energy_normalized)
-    threshold = 0.7
+    # plot_signal(np.arange(len(signal_energy_filtered))/fs,signal_energy_normalized,'Tiempo [s]','Amplitud Normalizada','Energia Promediada')
 
     threshold_crosses = np.where(signal_energy_normalized > threshold)[0] #idxes where signal energy crosses threshold
     crosses_lengths = np.diff(threshold_crosses) #diff n+1 with n, starting from 0, to see differences. if diff is > 1,
     signal_edges = np.where(crosses_lengths > 1)[0]+1 #it's another signal.
-
+    np.set_printoptions(threshold=np.inf)
     split_signal = np.split(threshold_crosses,signal_edges) #each set of points corresponds to one posible digit
 
     decoded_digits = np.empty([1,0])
@@ -318,7 +279,6 @@ def passband_filter(fs,fc,band_width=30,rolloff_freq=16):
     b = rolloff_freq/fs
     M = int(np.ceil((4/b)))
     if not M % 2: M += 1 #so that it's uneven and delay is easier to calculate
-
     n = np.arange(M)
     hlpf_H = np.sinc(2 * fH * (n - (M - 1) / 2.))
     hlpf_H = hlpf_H / np.sum(hlpf_H)
@@ -332,11 +292,11 @@ def passband_filter(fs,fc,band_width=30,rolloff_freq=16):
 
 
     h = hlpf_H - hlpf_L
-    h *= np.blackman(M)
+    h *= np.kaiser(M,kaiser_beta)
     #zplane(h,1,fc)
     #plot_freq_response(h,fc)
     hxf,hyf =calculate_fft(h,fs)
-    #plot_two_signals(n/fs,h,hxf,hyf,'Tiempo[s]','Amplitud','Frecuencia [Hz]','Amplitud [W/Hz]','Gráfico en Tiempo y Frecuencia de Filtro de Freq '+str(fc) + ' con ventana Kaiser')
+    #plot_two_signals(n/fs,h,hxf,hyf,'Tiempo[s]','Amplitud','Frecuencia [Hz]','Amplitud [W/Hz]','Gráfico en Tiempo y Frecuencia de Filtro de Freq '+str(fc))
     return h,M+1
 
 
@@ -362,7 +322,7 @@ def decode_dtmf_filterbank(sample_array,fs,threshold=0.7):
         freqs_idxs[freq] = []
         if (len(energy_crosses) >0 ):
             cross_lengths = np.diff(energy_crosses)
-            possible_tones_idxes = np.where(cross_lengths > 200)[0]+1 #add 1 to correctly display idxes
+            possible_tones_idxes = np.where(cross_lengths > 100)[0]+1 #add 1 to correctly display idxes
             possible_tones_intervals = np.split(energy_crosses,possible_tones_idxes)
             for tone_interval in possible_tones_intervals:
                 freqs_idxs[freq].append(tone_interval)
@@ -396,7 +356,7 @@ def ex_1(fs,sample_array,normalized_x):
 
 def ex_2(fs):
     test_tone = generate_tone(800, 1200, fs, 0.07)
-    play_tones(test_tone,fs)
+    play_tones(test_tone,fs,'ex2.wav')
     plot_signal(np.arange(len(test_tone)) / fs, test_tone, 'Tiempo [s]', 'Amplitud [s]', 'Señal de prueba')
 
 def ex_3(fs,sample_array,nperseg=256):
@@ -406,7 +366,7 @@ def ex_3(fs,sample_array,nperseg=256):
 def ex_7(fs):
     digit_seq = '32327'
     chunk = generate_tones(digit_seq,fs,0.07)
-    play_tones(chunk,fs)
+    play_tones(chunk,fs,'ex7.wav')
 
 def ex_8(fs,digit_seq):
     print(f'Original sequence: {digit_seq}')
@@ -422,8 +382,10 @@ def ex_9(fs,digit_seq):
 def ex_10(fs):
     for freq in dtmf_freqs_array:
         h,N_pb = passband_filter(fs,freq,30,36)
+        poles = np.zeros(len(h))
+        poles[0] = 1
         plot_freq_response(h,freq)
-        zplane(h,1.0,freq)
+        #zplane(h,poles,freq)
 
 def ex_11(fs,digit_seq,noise_intensity):
     print(f'Original sequence: {digit_seq}')
@@ -432,11 +394,18 @@ def ex_11(fs,digit_seq,noise_intensity):
     t_chunk = np.true_divide(np.arange(len(res_chunk)),fs)
     plot_signal(t_chunk,res_chunk_noisy,'Tiempo[s]','Amplitud [pcm]', 'Secuencia con ruido')
     print('Filtro con DFT: ',end='')
-    pretty_print_array(decode_dtmf_with_dft(res_chunk_noisy, fs))
+    pretty_print_array(decode_dtmf_with_dft(res_chunk_noisy, fs,0.6))
     print('Banco de Filtros FIR: ',end='')
-    pretty_print_array(decode_dtmf_filterbank(res_chunk_noisy,fs))
+    pretty_print_array(decode_dtmf_filterbank(res_chunk_noisy,fs,0.6))
 
 if __name__ == '__main__':
     fs,sample_array,normalized_x =draw_signal()
     digit_seq = 'ABCD123456789*#0'
-    ex_3(fs,sample_array,512)
+    #ex_1(fs,sample_array,normalized_x)
+    #ex_2(fs)
+    #ex_3(fs,sample_array,256)
+    #ex_7(fs)
+    #ex_8(fs,digit_seq)
+    #ex_9(fs,digit_seq)
+    #ex_10(fs)
+    #ex_11(fs,digit_seq,1500)
