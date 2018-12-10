@@ -8,7 +8,7 @@ It consists of a DTMF tone demodulator through 2 methods:
 Decoding the sequence through DFT, using the FFT
 Utilizing a filter bank, with filters designed through the Window method.
 
-##Prerequisites
+## Prerequisites
 
 You will need to have pip3, as well as virtualenv installed.
 
@@ -17,7 +17,7 @@ Virtualenv can be installed by:
 `pip3 install virtualenv`
 
 
-##Running dtmf demoduler
+## Running dtmf demoduler
 
 1. First, create a new virtualenv. We will choose 'dtmfdecoder' as the name of our example virtualenv
 but you can change the name to whichever you want to.
@@ -40,7 +40,7 @@ but you can change the name to whichever you want to.
 
 
 
-##Usage
+## Usage
 
 Bundled with *main.py* there are some exercises that depict the usage of this tool. Bear in mind
 that it is just an implementation and it is intended to be used in an investigational way.
@@ -67,7 +67,7 @@ it using the PyAudio library. Sometimes it will not play correctly with PyAudio,
 .wav file with your player of choice will do.
 
 
-##Project Info
+## Project Info
 
 This project was made as an special assignment for the Signals and Systems course at the Buenos Aires
 University Faculty of Engineering (FIUBA - Facultad de Ingeniería de la Universidad de Buenos Aires)
