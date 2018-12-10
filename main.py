@@ -165,9 +165,10 @@ def generate_tones(digit_seq,fs,dur):
 
 
 def calculate_fft(sample_array,fs):
+
     N = len(sample_array)
     T = 1/fs
-    yf = fft(sample_array)
+    yf = fft(sample_array.astype(float))
     xf = np.linspace(0.0,1.0/(2.0*T),N//2)
     return xf,np.abs(yf[0:N//2])
 
@@ -225,7 +226,7 @@ def decode_dtmf_with_dft(signal_array,fs,threshold=0.7):
 
     threshold_crosses = np.where(signal_energy_normalized > threshold)[0] #idxes where signal energy crosses threshold
     crosses_lengths = np.diff(threshold_crosses) #diff n+1 with n, starting from 0, to see differences. if diff is > 1,
-    signal_edges = np.where(crosses_lengths > 1)[0]+1 #it's another signal.
+    signal_edges = np.where(crosses_lengths > 100)[0]+1 #it's another signal.
     np.set_printoptions(threshold=np.inf)
     split_signal = np.split(threshold_crosses,signal_edges) #each set of points corresponds to one posible digit
 
@@ -366,6 +367,9 @@ def ex_3(fs,sample_array,nperseg=256):
 def ex_7(fs):
     digit_seq = '32327'
     chunk = generate_tones(digit_seq,fs,0.07)
+    plot_signal(np.arange(len(chunk))/fs,chunk)
+    xf,yf = calculate_fft(chunk,fs)
+    plot_signal(xf,yf)
     play_tones(chunk,fs,'ex7.wav')
 
 def ex_8(fs,digit_seq):
@@ -405,7 +409,9 @@ if __name__ == '__main__':
     #ex_2(fs)
     #ex_3(fs,sample_array,256)
     #ex_7(fs)
-    #ex_8(fs,digit_seq)
+    #ex_8(fs,sample_array[int(3.35*fs):int(4.2*fs)])
     #ex_9(fs,digit_seq)
     #ex_10(fs)
-    #ex_11(fs,digit_seq,1500)
+    #ex_11(fs,digit_seq,2000)
+
+    pretty_print_array(decode_dtmf_filterbank(sample_array,fs))
