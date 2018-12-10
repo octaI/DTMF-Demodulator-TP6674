@@ -56,7 +56,6 @@ to a wav file, for external reproduction.
 
 * Reading an existing wavfile with the `draw_signal` function. It will return the sampling frequency, as well as the sample array and 
 the x axis, normalized by the sampling frequency so you plot in the time domain, if you want to.
-Keep in mind that 
 
 
 **Note**: Keep in mind that, the tone generator is suited to generate the signals utilizing np.int16 data type.
