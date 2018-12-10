@@ -71,3 +71,9 @@ it using the PyAudio library. Sometimes it will not play correctly with PyAudio,
 
 This project was made as an special assignment for the Signals and Systems course at the Buenos Aires
 University Faculty of Engineering (FIUBA - Facultad de Ingeniería de la Universidad de Buenos Aires)
+
+## Credits
+
+To Christopher Felton for his z-plot function which I slightly modified!
+
+https://www.dsprelated.com/showcode/244.php
